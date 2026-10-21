@@ -1279,8 +1279,11 @@
       alert('Please connect cloud sync first.');
       return;
     }
-    const currentUrl = window.location.origin + window.location.pathname;
-    const pairingUrl = `${currentUrl}#sync=${state.sync.token}|${state.sync.gistId}`;
+    let baseUrl = window.location.origin + window.location.pathname;
+    if (window.location.protocol === 'file:' || baseUrl.includes('file:///')) {
+      baseUrl = 'https://tiramiisuu.github.io/accountable/';
+    }
+    const pairingUrl = `${baseUrl}#sync=${state.sync.token}|${state.sync.gistId}`;
     const box = document.getElementById('pairing-link-box');
     const input = document.getElementById('input-pairing-url');
     input.value = pairingUrl;
