@@ -11,6 +11,7 @@
   const STORAGE_KEY_SETTINGS = 'accountable_settings_v1';
   const STORAGE_KEY_MERGED_STARE_BENE = 'accountable_merged_stare_bene_v1';
   const STORAGE_KEY_SYNC_CONFIG = 'accountable_sync_config_v1';
+  const STORAGE_KEY_DELETED = 'accountable_deleted_v1';
 
   const DEFAULT_SETTINGS = {
     alphaUp: 0.16,      // recovery climb rate per clean day
@@ -60,6 +61,7 @@
     tablePageSize: 10,
     editingDate: null,
     editingStatus: null,
+    deleted: {},
     sync: {
       token: '',
       gistId: '',
@@ -133,6 +135,21 @@
         state.entries = parsed;
       }
 
+      const rawDeleted = localStorage.getItem(STORAGE_KEY_DELETED);
+      if (rawDeleted) {
+        try {
+          state.deleted = JSON.parse(rawDeleted) || {};
+        } catch (e) {
+          state.deleted = {};
+        }
+      }
+
+      // Purge accidental tomorrow entry if present
+      if (state.entries['2026-10-22']) {
+        delete state.entries['2026-10-22'];
+        state.deleted['2026-10-22'] = Date.now();
+      }
+
       const rawSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
       if (rawSettings) {
         state.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(rawSettings) };
@@ -146,6 +163,7 @@
   function saveData() {
     try {
       localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(state.entries));
+      localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(state.deleted));
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(state.settings));
       scheduleAutoSync();
     } catch (e) {
@@ -643,6 +661,9 @@
       notes: notes,
       updatedAt: Date.now()
     };
+    if (state.deleted[state.editingDate]) {
+      delete state.deleted[state.editingDate];
+    }
 
     saveData();
     recalculateMomentum();
@@ -663,6 +684,7 @@
     if (!state.entries[dateStr]) return;
     if (confirm(`Clear entry for ${formatDisplayDate(dateStr, true)}?`)) {
       delete state.entries[dateStr];
+      state.deleted[dateStr] = Date.now();
       saveData();
       recalculateMomentum();
       renderAll();
@@ -1136,23 +1158,52 @@
         } catch (e) {}
       }
 
-      // 2. Merge remote entries with local entries
+      // 2. Merge remote entries & deletions with local
       let hasChanges = false;
-      if (remotePayload && remotePayload.entries) {
-        for (const [dateStr, remoteEntry] of Object.entries(remotePayload.entries)) {
-          const localEntry = state.entries[dateStr];
-          if (!localEntry) {
-            state.entries[dateStr] = remoteEntry;
-            hasChanges = true;
-          } else {
+      if (remotePayload) {
+        // Merge remote tombstones
+        if (remotePayload.deleted && typeof remotePayload.deleted === 'object') {
+          for (const [delDate, delTime] of Object.entries(remotePayload.deleted)) {
+            state.deleted[delDate] = Math.max(state.deleted[delDate] || 0, delTime);
+          }
+        }
+
+        // Merge entries
+        if (remotePayload.entries && typeof remotePayload.entries === 'object') {
+          for (const [dateStr, remoteEntry] of Object.entries(remotePayload.entries)) {
+            const delTime = state.deleted[dateStr] || 0;
             const rTime = remoteEntry.updatedAt || 0;
-            const lTime = localEntry.updatedAt || 0;
-            if (rTime > lTime) {
+
+            if (delTime >= rTime) {
+              if (state.entries[dateStr]) {
+                delete state.entries[dateStr];
+                hasChanges = true;
+              }
+              continue;
+            }
+
+            const localEntry = state.entries[dateStr];
+            if (!localEntry) {
               state.entries[dateStr] = remoteEntry;
               hasChanges = true;
+            } else {
+              const lTime = localEntry.updatedAt || 0;
+              if (rTime > lTime) {
+                state.entries[dateStr] = remoteEntry;
+                hasChanges = true;
+              }
             }
           }
         }
+
+        // Clean local entries that were deleted
+        for (const [delDate, delTime] of Object.entries(state.deleted)) {
+          if (state.entries[delDate] && (state.entries[delDate].updatedAt || 0) <= delTime) {
+            delete state.entries[delDate];
+            hasChanges = true;
+          }
+        }
+
         if (remotePayload.settings) {
           state.settings = { ...state.settings, ...remotePayload.settings };
         }
@@ -1169,6 +1220,7 @@
         version: 1,
         lastUpdated: Date.now(),
         entries: state.entries,
+        deleted: state.deleted,
         settings: state.settings
       };
 
