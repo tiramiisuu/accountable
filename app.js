@@ -1283,7 +1283,8 @@
     if (window.location.protocol === 'file:' || baseUrl.includes('file:///')) {
       baseUrl = 'https://tiramiisuu.github.io/accountable/';
     }
-    const pairingUrl = `${baseUrl}#sync=${state.sync.token}|${state.sync.gistId}`;
+    // Clean standard URL hash syntax so iOS / messaging apps never mangle characters
+    const pairingUrl = `${baseUrl}#token=${state.sync.token}&gist=${state.sync.gistId}`;
     const box = document.getElementById('pairing-link-box');
     const input = document.getElementById('input-pairing-url');
     input.value = pairingUrl;
@@ -1303,18 +1304,38 @@
   }
 
   function handlePairingFromHash() {
-    const hash = window.location.hash;
-    if (hash && hash.startsWith('#sync=')) {
-      const parts = hash.replace('#sync=', '').split('|');
-      if (parts.length === 2 && parts[0] && parts[1]) {
-        state.sync.token = parts[0];
-        state.sync.gistId = parts[1];
-        saveSyncConfig();
-        // Remove hash from URL without reloading
-        window.history.replaceState(null, '', window.location.pathname);
-        showToast('Connected via pairing link! Syncing data...', 'success');
-        syncWithCloud(false);
+    // Check both hash and search params, handling any URL-encoded characters
+    const raw = decodeURIComponent(window.location.hash || window.location.search || '');
+    if (!raw) return;
+
+    let token = '';
+    let gistId = '';
+
+    // Format 1: #token=...&gist=... or ?token=...&gist=...
+    if (raw.includes('token=') && raw.includes('gist=')) {
+      const matchToken = raw.match(/token=([a-zA-Z0-9_]+)/);
+      const matchGist = raw.match(/gist=([a-zA-Z0-9_]+)/);
+      if (matchToken) token = matchToken[1];
+      if (matchGist) gistId = matchGist[1];
+    }
+    // Format 2: #sync=TOKEN|GIST or #sync=TOKEN%7CGIST
+    else if (raw.includes('sync=')) {
+      const clean = raw.replace(/^.*?sync=/, '');
+      const parts = clean.split(/[|]/);
+      if (parts.length >= 2) {
+        token = parts[0].trim();
+        gistId = parts[1].trim();
       }
+    }
+
+    if (token && gistId) {
+      state.sync.token = token;
+      state.sync.gistId = gistId;
+      saveSyncConfig();
+      // Remove hash from URL without reloading
+      window.history.replaceState(null, '', window.location.pathname);
+      showToast('Connected via pairing link! Syncing data...', 'success');
+      syncWithCloud(false);
     }
   }
 
