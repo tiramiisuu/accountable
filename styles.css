@@ -672,8 +672,12 @@ body {
   transition: opacity 0.2s ease;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .modal-backdrop.hidden {
-  display: none;
+  display: none !important;
   opacity: 0;
 }
 
