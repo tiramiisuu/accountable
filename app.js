@@ -267,6 +267,50 @@
     };
   }
 
+  function getStreaks() {
+    const today = getTodayStr();
+    const sortedDates = Object.keys(state.entries).sort();
+
+    if (sortedDates.length === 0) {
+      return { current: 0, best: 0 };
+    }
+
+    let bestStreak = 0;
+    let currentRun = 0;
+    let prevDate = null;
+
+    for (const dStr of sortedDates) {
+      const isClean = state.entries[dStr].status === 'clean';
+
+      if (prevDate !== null) {
+        const prev = parseDateStr(prevDate);
+        const cur = parseDateStr(dStr);
+        const isConsecutive = (cur - prev) / 86400000 === 1;
+        if (isClean && isConsecutive) {
+          currentRun++;
+        } else if (isClean) {
+          currentRun = 1;
+        } else {
+          currentRun = 0;
+        }
+      } else {
+        currentRun = isClean ? 1 : 0;
+      }
+
+      if (currentRun > bestStreak) bestStreak = currentRun;
+      prevDate = dStr;
+    }
+
+    // If the last logged date is not today or yesterday, current streak is broken
+    const lastDate = sortedDates[sortedDates.length - 1];
+    const todayDate = parseDateStr(today);
+    const lastLogDate = parseDateStr(lastDate);
+    const dayGap = (todayDate - lastLogDate) / 86400000;
+    const activeStreak = dayGap <= 1 ? currentRun : 0;
+
+    return { current: activeStreak, best: bestStreak };
+  }
+
   // --- UI Update: KPI Cards ---
   function renderKPIs() {
     const stats = getStats();
@@ -413,6 +457,58 @@
     // Scroll heatmap container to the right end (today) on load
     const container = document.getElementById('heatmap-container');
     container.scrollLeft = container.scrollWidth;
+  }
+
+  // --- UI Update: Willpower Meter ---
+  function renderWillpower() {
+    const { current, best } = getStreaks();
+
+    const currentEl = document.getElementById('streak-current');
+    const bestEl = document.getElementById('streak-best');
+    const fireIcon = document.getElementById('fire-icon');
+    const fireLabel = document.getElementById('willpower-status-label');
+
+    if (!currentEl) return;
+
+    currentEl.textContent = current;
+    bestEl.textContent = best;
+
+    // Dynamic fire emoji and label based on streak length
+    let emoji = '🌱';
+    let label = 'Plant the seed';
+    if (current >= 1 && current < 7) {
+      emoji = '🔥';
+      label = 'Getting warm!';
+    } else if (current >= 7 && current < 14) {
+      emoji = '🔥🔥';
+      label = 'One week strong!';
+    } else if (current >= 14 && current < 30) {
+      emoji = '⚡';
+      label = 'Two-week warrior!';
+    } else if (current >= 30 && current < 60) {
+      emoji = '🏆';
+      label = '30-day legend!';
+    } else if (current >= 60 && current < 100) {
+      emoji = '💎';
+      label = 'Diamond mindset!';
+    } else if (current >= 100) {
+      emoji = '👑';
+      label = 'Absolute ruler!';
+    } else if (current === 0) {
+      emoji = '🌱';
+      label = 'Log a clean day!';
+    }
+
+    fireIcon.textContent = emoji;
+    fireLabel.textContent = label;
+
+    // Pulse animation on the current number
+    currentEl.style.transform = 'scale(1.1)';
+    currentEl.style.transition = 'transform 0s';
+    setTimeout(() => {
+      currentEl.style.transform = 'scale(1)';
+      currentEl.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    }, 50);
   }
 
   // --- UI Update: Chart.js Line Chart ---
@@ -1449,6 +1545,7 @@
   // --- Master Render Function ---
   function renderAll() {
     renderKPIs();
+    renderWillpower();
     renderHeatmap();
     renderChart();
     renderTable();

@@ -1,5 +1,5 @@
 // Accountable Service Worker - Offline PWA Support
-const CACHE_NAME = 'accountable-v4';
+const CACHE_NAME = 'accountable-v5';
 const ASSETS = [
   './',
   './index.html',
