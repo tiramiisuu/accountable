@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Accountable &bull; Resilience & Momentum Tracker</title>
+  
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Accountable">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <meta name="theme-color" content="#090d16">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Accountable</h1>
+          <p class="brand-subtitle">Resilience & Momentum Tracker &bull; Progress over perfection</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-cloud-sync" class="btn btn-secondary sync-pill" title="Configure Cloud Sync across devices">
+          <span class="sync-dot dot-offline" id="sync-indicator-dot"></span>
+          <span id="sync-status-text">Cloud Sync</span>
+        </button>
+        <button id="btn-quick-log" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Log Today
+        </button>
+        <button id="btn-batch-fill" class="btn btn-secondary" title="Batch log a range of dates">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Batch Fill
+        </button>
+        <button id="btn-export-excel" class="btn btn-success" title="Export complete report to Excel">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Export Excel
+        </button>
+        <div class="dropdown">
+          <button id="btn-more-actions" class="btn btn-icon" title="Data & Settings">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+          </button>
+          <div id="more-dropdown-menu" class="dropdown-menu hidden">
+            <button id="btn-load-starebene" class="dropdown-item">Load 'Stare Bene' Data (313d)</button>
+            <button id="btn-export-json" class="dropdown-item">Backup Data (JSON)</button>
+            <label class="dropdown-item file-label">
+              Restore Data (JSON)
+              <input type="file" id="input-import-json" accept=".json" style="display: none;">
+            </label>
+            <button id="btn-settings" class="dropdown-item">Scoring Settings</button>
+            <hr class="dropdown-divider">
+            <button id="btn-reset-data" class="dropdown-item text-danger">Clear All Data</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- KPI Dashboard Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card highlight-card">
+        <div class="kpi-label">Current Momentum</div>
+        <div class="kpi-value-row">
+          <span id="kpi-current-momentum" class="kpi-value">0%</span>
+          <span id="kpi-momentum-badge" class="badge">Starting</span>
+        </div>
+        <div class="kpi-progress-bar-bg">
+          <div id="kpi-momentum-bar" class="kpi-progress-bar-fill" style="width: 0%"></div>
+        </div>
+        <div class="kpi-subtext" id="kpi-current-subtext">No logs recorded yet</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">All-Time Peak</div>
+        <div class="kpi-value" id="kpi-peak-momentum">0%</div>
+        <div class="kpi-subtext" id="kpi-peak-date">Best resilience achieved</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Clean Days Rate</div>
+        <div class="kpi-value" id="kpi-clean-rate">0%</div>
+        <div class="kpi-subtext" id="kpi-clean-ratio">0 of 0 days</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Breakdown</div>
+        <div class="kpi-breakdown">
+          <div class="breakdown-item text-clean">
+            <span class="breakdown-dot dot-clean"></span>
+            <span id="kpi-count-clean">0</span> Clean
+          </div>
+          <div class="breakdown-item text-minor">
+            <span class="breakdown-dot dot-minor"></span>
+            <span id="kpi-count-minor">0</span> Close
+          </div>
+          <div class="breakdown-item text-relapse">
+            <span class="breakdown-dot dot-relapse"></span>
+            <span id="kpi-count-relapse">0</span> Relapse
+          </div>
+        </div>
+        <div class="kpi-subtext" id="kpi-total-logged">0 total days logged</div>
+      </div>
+    </section>
+
+    <!-- Interactive Line Chart Section -->
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Momentum Curve</h2>
+          <p class="section-subtitle">A bad day is a dip, not a reset. Recover momentum with consistency.</p>
+        </div>
+        <div class="chart-controls">
+          <div class="btn-group" id="chart-range-group">
+            <button class="btn btn-sm btn-toggle" data-range="30">30D</button>
+            <button class="btn btn-sm btn-toggle" data-range="90">90D</button>
+            <button class="btn btn-sm btn-toggle" data-range="365">1Y</button>
+            <button class="btn btn-sm btn-toggle active" data-range="all">All</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="momentumChart"></canvas>
+      </div>
+      <div class="chart-legend-row">
+        <span class="legend-chip"><span class="dot dot-clean"></span> Clean (+Recovery)</span>
+        <span class="legend-chip"><span class="dot dot-minor"></span> Close Call (Hold/Slight Dip)</span>
+        <span class="legend-chip"><span class="dot dot-relapse"></span> Relapse (Dip)</span>
+        <span class="legend-chip text-muted"><span class="threshold-dash"></span> 80% High Resilience Zone</span>
+      </div>
+    </section>
+
+    <!-- Contribution Heat Map Section -->
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">History & Backfill Heatmap</h2>
+          <p class="section-subtitle">Click any day to log or edit past stats. Quick keyboard shortcuts available.</p>
+        </div>
+        <div class="heatmap-controls">
+          <button id="btn-heatmap-prev-year" class="btn btn-sm btn-secondary" title="Previous Year">&larr; Prev</button>
+          <span id="heatmap-year-label" class="heatmap-year-label">2026</span>
+          <button id="btn-heatmap-next-year" class="btn btn-sm btn-secondary" title="Next Year">Next &rarr;</button>
+          <button id="btn-heatmap-rolling" class="btn btn-sm btn-toggle active" title="Show past 52 weeks">Past 52 W</button>
+        </div>
+      </div>
+
+      <!-- Heatmap Scroll Container -->
+      <div class="heatmap-container" id="heatmap-container">
+        <div class="heatmap-months" id="heatmap-months"></div>
+        <div class="heatmap-body">
+          <div class="heatmap-weekdays">
+            <span>Mon</span>
+            <span></span>
+            <span>Wed</span>
+            <span></span>
+            <span>Fri</span>
+            <span></span>
+            <span>Sun</span>
+          </div>
+          <div class="heatmap-grid" id="heatmap-grid">
+            <!-- Dynamically generated days -->
+          </div>
+        </div>
+      </div>
+
+      <div class="heatmap-footer">
+        <div class="heatmap-legend">
+          <span class="legend-text">Less</span>
+          <span class="legend-cell cell-empty" title="Unlogged"></span>
+          <span class="legend-cell cell-relapse" title="Relapse"></span>
+          <span class="legend-cell cell-minor" title="Close Call / Minor Slip"></span>
+          <span class="legend-cell cell-clean" title="Clean / Victorious"></span>
+          <span class="legend-text">Clean</span>
+        </div>
+        <div class="heatmap-hint">
+          Tip: Click any cell to view or edit details. Use <strong>Batch Fill</strong> to import full months at once.
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent Logs Table (Quick View) -->
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Recent Entries</h2>
+          <p class="section-subtitle">Chronological record of recent entries and notes.</p>
+        </div>
+        <div>
+          <input type="text" id="table-search" class="input-search" placeholder="Search notes or dates...">
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="logs-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Day Score</th>
+              <th>Momentum</th>
+              <th>Notes / Triggers</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="logs-table-body">
+            <tr>
+              <td colspan="6" class="text-center text-muted">No entries logged yet. Click "Log Today" or click any day in the heatmap.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-pagination" id="table-pagination">
+        <span id="table-page-info">Showing entries</span>
+        <div class="btn-group">
+          <button id="btn-table-prev" class="btn btn-sm btn-secondary">&larr; Prev</button>
+          <button id="btn-table-next" class="btn btn-sm btn-secondary">Next &rarr;</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Day Edit Modal -->
+  <div id="modal-day-edit" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="modal-day-title">Log Entry</h3>
+          <p class="modal-subtitle" id="modal-day-subtitle">Select your status for this day</p>
+        </div>
+        <button class="modal-close" id="modal-day-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" id="modal-input-date" class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Status (Graded)</label>
+          <div class="status-selector">
+            <button type="button" class="status-btn status-btn-clean" data-status="clean">
+              <div class="status-btn-icon">&check;</div>
+              <div class="status-btn-content">
+                <strong>Clean / Victorious</strong>
+                <span>100% adherence &bull; Gains momentum</span>
+              </div>
+              <span class="status-hotkey">1</span>
+            </button>
+
+            <button type="button" class="status-btn status-btn-minor" data-status="minor">
+              <div class="status-btn-icon">&sim;</div>
+              <div class="status-btn-content">
+                <strong>Close Call / Minor Slip</strong>
+                <span>50% adherence &bull; Gentle pause/dip</span>
+              </div>
+              <span class="status-hotkey">2</span>
+            </button>
+
+            <button type="button" class="status-btn status-btn-relapse" data-status="relapse">
+              <div class="status-btn-icon">&cross;</div>
+              <div class="status-btn-content">
+                <strong>Relapse</strong>
+                <span>0% adherence &bull; Expected dip, retain base</span>
+              </div>
+              <span class="status-hotkey">3</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="modal-input-notes">Notes & Triggers (Optional)</label>
+          <textarea id="modal-input-notes" class="form-input form-textarea" rows="2" placeholder="e.g. Late night urge, tiredness, stress at work, or what helped you stay strong..."></textarea>
+        </div>
+
+        <div class="modal-stats-preview" id="modal-stats-preview">
+          Calculated Momentum for this day: <strong id="modal-preview-momentum">--</strong>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="modal-btn-delete" class="btn btn-outline-danger">Clear Day</button>
+        <div class="modal-footer-right">
+          <button type="button" id="modal-btn-save-prev" class="btn btn-secondary" title="Save & jump to previous day">&larr; Save & Prev</button>
+          <button type="button" id="modal-btn-save-next" class="btn btn-secondary" title="Save & advance to next day">Save & Next &rarr;</button>
+          <button type="button" id="modal-btn-save" class="btn btn-primary">Save Entry</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Fill Modal -->
+  <div id="modal-batch-fill" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Batch Fill Date Range</h3>
+          <p class="modal-subtitle">Quickly populate multiple dates from your previous tracker stats</p>
+        </div>
+        <button class="modal-close" id="modal-batch-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group col-half">
+            <label class="form-label" for="batch-start-date">Start Date</label>
+            <input type="date" id="batch-start-date" class="form-input">
+          </div>
+          <div class="form-group col-half">
+            <label class="form-label" for="batch-end-date">End Date</label>
+            <input type="date" id="batch-end-date" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Set Status for All Days in Range</label>
+          <div class="btn-group w-full">
+            <button type="button" class="btn btn-secondary btn-batch-status active" data-batch-status="clean">Clean (100%)</button>
+            <button type="button" class="btn btn-secondary btn-batch-status" data-batch-status="minor">Close Call (50%)</button>
+            <button type="button" class="btn btn-secondary btn-batch-status" data-batch-status="relapse">Relapse (0%)</button>
+            <button type="button" class="btn btn-secondary btn-batch-status text-danger" data-batch-status="clear">Clear/Erase</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="batch-notes">Notes (Optional, applied to all days)</label>
+          <input type="text" id="batch-notes" class="form-input" placeholder="e.g. Imported baseline streak">
+        </div>
+
+        <div class="alert-box">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span>Existing entries in this range will be overwritten. You can fine-tune specific relapse days on the heatmap afterwards.</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="modal-batch-cancel" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="modal-batch-apply" class="btn btn-primary">Apply Batch Fill</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="modal-settings" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Scoring & Momentum Tuning</h3>
+          <p class="modal-subtitle">Customize how dips and recoveries behave</p>
+        </div>
+        <button class="modal-close" id="modal-settings-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Recovery Speed (Climb rate per clean day)</label>
+          <div class="range-row">
+            <input type="range" id="setting-alpha-up" min="0.05" max="0.30" step="0.01" value="0.15" class="form-range">
+            <span id="setting-alpha-up-val" class="range-val">15%</span>
+          </div>
+          <p class="field-hint">Higher values make momentum climb faster towards 100% after clean days.</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Relapse Dip Penalty (Drop rate per slip)</label>
+          <div class="range-row">
+            <input type="range" id="setting-alpha-down" min="0.05" max="0.40" step="0.01" value="0.20" class="form-range">
+            <span id="setting-alpha-down-val" class="range-val">20%</span>
+          </div>
+          <p class="field-hint">Defines how noticeable a dip is. A value of 20% drops a 90% score down to ~72% (preserving 80% of your progress).</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Minor Slip / Close Call Value</label>
+          <div class="range-row">
+            <input type="range" id="setting-minor-val" min="20" max="80" step="5" value="50" class="form-range">
+            <span id="setting-minor-val-val" class="range-val">50%</span>
+          </div>
+          <p class="field-hint">The target score assigned to a close call or minor boundary slip.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="modal-settings-reset" class="btn btn-secondary">Reset to Defaults</button>
+        <button type="button" id="modal-settings-save" class="btn btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cloud Sync Modal -->
+  <div id="modal-cloud-sync" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Cross-Device Cloud Sync</h3>
+          <p class="modal-subtitle">Sync seamlessly between iPhone, Mac, and Windows via private GitHub Gist</p>
+        </div>
+        <button class="modal-close" id="modal-cloud-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Connected Status Card -->
+        <div id="sync-status-card" class="sync-status-box hidden">
+          <div class="sync-status-header">
+            <span class="sync-dot dot-synced"></span>
+            <strong>Connected to Private Cloud</strong>
+          </div>
+          <p class="sync-status-subtext" id="sync-status-details">Gist ID: -- | Last sync: --</p>
+          <div class="sync-action-buttons">
+            <button type="button" id="btn-sync-now" class="btn btn-sm btn-primary">Sync Now</button>
+            <button type="button" id="btn-generate-pairing-link" class="btn btn-sm btn-secondary">Pair Another Device (Link)</button>
+            <button type="button" id="btn-disconnect-sync" class="btn btn-sm btn-outline-danger">Disconnect</button>
+          </div>
+        </div>
+
+        <!-- Pairing Link Box -->
+        <div id="pairing-link-box" class="pairing-box hidden">
+          <label class="form-label">Pairing Link (Open this link on your iPhone/PC to auto-connect):</label>
+          <div class="pairing-input-row">
+            <input type="text" id="input-pairing-url" class="form-input text-mono" readonly>
+            <button type="button" id="btn-copy-pairing-url" class="btn btn-secondary">Copy</button>
+          </div>
+          <p class="field-hint">AirDrop, message, or email this link to your iPhone to connect in 1 tap without typing tokens.</p>
+        </div>
+
+        <!-- Configuration Form -->
+        <div id="sync-setup-form">
+          <div class="form-group">
+            <label class="form-label" for="input-github-token">
+              GitHub Personal Access Token (Classic)
+              <a href="https://github.com/settings/tokens/new?scopes=gist&description=Accountable%20Tracker%20Sync" target="_blank" class="link-external">Generate Token &nearr;</a>
+            </label>
+            <input type="password" id="input-github-token" class="form-input text-mono" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+            <p class="field-hint">Requires only the <strong>gist</strong> permission scope. Stored locally in your browser.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="input-gist-id">Gist ID (Optional)</label>
+            <input type="text" id="input-gist-id" class="form-input text-mono" placeholder="Leave empty to auto-create a new private Gist">
+            <p class="field-hint">If you already have a sync Gist from another device, paste its ID here.</p>
+          </div>
+
+          <div class="alert-box">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Your habit data is stored in a <strong>private secret Gist</strong> under your personal GitHub account. Nobody else can access it.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="modal-cloud-cancel" class="btn btn-secondary">Close</button>
+        <button type="button" id="btn-save-sync" class="btn btn-primary">Connect & Sync</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Local Vendor Scripts -->
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/exceljs.min.js"></script>
+
+  <!-- Preloaded Data & Application Logic -->
+  <script src="initial_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
