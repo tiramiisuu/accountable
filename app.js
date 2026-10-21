@@ -607,13 +607,23 @@
   function openDayEditModal(dateStr) {
     state.editingDate = dateStr || getTodayStr();
     const entry = state.entries[state.editingDate];
+    const subElem = document.getElementById('modal-day-subtitle');
+    const deleteBtn = document.getElementById('modal-btn-delete');
 
     document.getElementById('modal-input-date').value = state.editingDate;
     document.getElementById('modal-day-title').textContent = `Log Entry &bull; ${formatDisplayDate(state.editingDate, true)}`;
     document.getElementById('modal-input-notes').value = entry ? (entry.notes || '') : '';
 
-    // Status selection
-    selectStatusButton(entry ? entry.status : 'clean');
+    if (entry) {
+      const cfg = STATUS_CONFIG[entry.status];
+      subElem.textContent = `Current status: ${cfg?.label || entry.status} (${cfg?.value || 0}%)`;
+      selectStatusButton(entry.status);
+      deleteBtn.style.display = 'inline-flex';
+    } else {
+      subElem.textContent = 'No entry logged for this day yet. Select a status:';
+      selectStatusButton(null); // Do not pre-select any status on an unlogged day!
+      deleteBtn.style.display = 'none';
+    }
 
     // Update momentum preview
     updateModalMomentumPreview();
@@ -653,7 +663,11 @@
   }
 
   function saveCurrentEntry(advanceDays = 0) {
-    if (!state.editingDate || !state.editingStatus) return;
+    if (!state.editingDate) return;
+    if (!state.editingStatus) {
+      alert('Please select a status (Clean, Close Call, or Relapse) before saving.');
+      return;
+    }
 
     const notes = document.getElementById('modal-input-notes').value.trim();
     state.entries[state.editingDate] = {
@@ -681,7 +695,10 @@
   }
 
   function deleteEntry(dateStr) {
-    if (!state.entries[dateStr]) return;
+    if (!state.entries[dateStr]) {
+      closeDayEditModal();
+      return;
+    }
     if (confirm(`Clear entry for ${formatDisplayDate(dateStr, true)}?`)) {
       delete state.entries[dateStr];
       state.deleted[dateStr] = Date.now();
@@ -689,9 +706,8 @@
       recalculateMomentum();
       renderAll();
       showToast(`Removed entry for ${dateStr}`, 'success');
-      if (state.editingDate === dateStr) {
-        closeDayEditModal();
-      }
+      closeDayEditModal();
+      syncWithCloud(true);
     }
   }
 
